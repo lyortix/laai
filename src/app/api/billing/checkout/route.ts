@@ -28,9 +28,16 @@ export async function POST() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id, email")
+    .select("stripe_customer_id, email, plan")
     .eq("id", user.id)
     .single();
+
+  if (profile?.plan === "pro") {
+    return NextResponse.json(
+      { error: "You're already on Pro. Manage your subscription from Settings." },
+      { status: 409 }
+    );
+  }
 
   const stripe = getStripe();
 

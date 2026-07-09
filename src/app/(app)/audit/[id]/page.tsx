@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertCircle, ArrowLeft, ExternalLink, RotateCw } from "lucide-react";
+import { AutoRefresh } from "@/components/audit/auto-refresh";
 import { ReportView } from "@/components/audit/report-view";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -79,13 +80,17 @@ export default async function AuditPage({
       )}
 
       {(audit.status === "pending" || audit.status === "running") && (
-        <Alert className="animate-fade-in">
-          <RotateCw className="animate-spin" />
-          <AlertTitle>Audit in progress</AlertTitle>
-          <AlertDescription>
-            This audit is still running. Refresh the page in a few seconds.
-          </AlertDescription>
-        </Alert>
+        <>
+          <AutoRefresh />
+          <Alert className="animate-fade-in">
+            <RotateCw className="animate-spin" />
+            <AlertTitle>Audit in progress</AlertTitle>
+            <AlertDescription>
+              This audit is still running — the report will appear here
+              automatically when it&apos;s ready.
+            </AlertDescription>
+          </Alert>
+        </>
       )}
 
       {audit.status === "complete" &&

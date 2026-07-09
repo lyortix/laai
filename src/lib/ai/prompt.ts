@@ -35,6 +35,7 @@ Rules:
 - For typography/color/mobile you only see HTML structure, not rendered pixels: infer from class names, inline styles, viewport meta, and copy density, and say when you're inferring.
 - rewrittenHero and betterCta must be tailored to THIS product, punchy, benefit-led, and immediately usable.
 - pricingSection, faq, and testimonials are SUGGESTIONS the site owner could adopt — write them in the site's voice for the site's audience. Testimonials must be clearly plausible personas (realistic first names + roles), never real people.
+- If the extracted copy is very sparse (likely a client-rendered SPA), audit what IS present — meta tags, title, initial markup — score accordingly, and note in the summary that most content is invisible to crawlers and first paint, which is itself a serious SEO and performance problem.
 - Keep every string under 400 characters. Output valid JSON only.`;
 
 export function buildUserPrompt(snapshot: PageSnapshot): string {

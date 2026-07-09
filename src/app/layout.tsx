@@ -22,6 +22,11 @@ export const metadata: Metadata = {
     description: "AI-powered landing page audits in under 60 seconds.",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "LandingRoast AI",
+    description: "AI-powered landing page audits in under 60 seconds.",
+  },
 };
 
 export default function RootLayout({
@@ -30,6 +35,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
+        >
+          Skip to content
+        </a>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

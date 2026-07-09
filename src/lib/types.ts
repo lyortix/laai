@@ -16,6 +16,15 @@ export interface Audit {
   completed_at: string | null;
 }
 
+/**
+ * Lean projection for audit lists — deliberately excludes the multi-KB
+ * `report` JSONB so history/dashboard queries stay cheap.
+ */
+export type AuditListItem = Omit<Audit, "report" | "user_id" | "completed_at">;
+
+export const AUDIT_LIST_COLUMNS =
+  "id, url, site_title, status, overall_score, error, created_at";
+
 export interface Profile {
   id: string;
   email: string | null;

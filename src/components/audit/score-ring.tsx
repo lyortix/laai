@@ -54,7 +54,7 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-bold tabular-nums" style={{ fontSize: size / 4 }}>
+        <span className="font-bold tabular-nums" style={{ fontSize: size / 4 }}>
           {score}
         </span>
         {showLabel && (

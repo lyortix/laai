@@ -1,24 +1,44 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DeleteAuditButton } from "@/components/audit/delete-audit-button";
 import { cn, displayUrl, formatDate, scoreColor } from "@/lib/utils";
-import type { Audit } from "@/lib/types";
+import type { AuditListItem } from "@/lib/types";
 
-/** One row in the audit history / recent list. */
-export function AuditCard({ audit }: { audit: Audit }) {
+interface AuditCardProps {
+  audit: AuditListItem;
+  /** Show the delete action (used on the history page). */
+  deletable?: boolean;
+}
+
+/**
+ * One row in the audit history / recent list. Uses a stretched-link overlay
+ * so the whole card is clickable while the delete button stays interactive.
+ */
+export function AuditCard({ audit, deletable = false }: AuditCardProps) {
   const failed = audit.status === "failed";
   const complete = audit.status === "complete";
+  const label = displayUrl(audit.url);
 
-  const inner = (
+  return (
     <div
       className={cn(
-        "group flex items-center justify-between gap-4 rounded-xl border bg-card p-4 transition-all",
+        "group relative flex items-center justify-between gap-4 rounded-xl border bg-card p-4 transition-all",
         complete && "hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
       )}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="truncate font-medium">{displayUrl(audit.url)}</p>
+          {complete ? (
+            <Link
+              href={`/audit/${audit.id}`}
+              className="truncate font-medium after:absolute after:inset-0 after:content-['']"
+            >
+              {label}
+            </Link>
+          ) : (
+            <p className="truncate font-medium">{label}</p>
+          )}
           {failed && (
             <Badge variant="danger" className="shrink-0">
               <AlertTriangle />
@@ -42,7 +62,7 @@ export function AuditCard({ audit }: { audit: Audit }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-1.5">
         {complete && audit.overall_score !== null && (
           <span
             className={cn("text-2xl font-bold tabular-nums", scoreColor(audit.overall_score))}
@@ -53,15 +73,8 @@ export function AuditCard({ audit }: { audit: Audit }) {
         {complete && (
           <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
         )}
+        {deletable && <DeleteAuditButton auditId={audit.id} label={label} />}
       </div>
     </div>
-  );
-
-  if (!complete) return inner;
-
-  return (
-    <Link href={`/audit/${audit.id}`} className="block">
-      {inner}
-    </Link>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runAudit, AnalysisError } from "@/lib/audit/run";
-import { getQuota } from "@/lib/audit/quota";
+import { checkRateLimits, confirmQuotaAfterInsert, getQuota } from "@/lib/audit/quota";
 import { ScrapeError, normalizeUrl } from "@/lib/audit/scrape";
 import { createClient } from "@/lib/supabase/server";
 import { isAiConfigured, isSupabaseConfigured } from "@/lib/env";
@@ -14,18 +14,16 @@ const bodySchema = z.object({
   url: z.string().min(1, "URL is required").max(2048),
 });
 
+function jsonError(status: number, error: string, code?: string) {
+  return NextResponse.json(code ? { error, code } : { error }, { status });
+}
+
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
-    return NextResponse.json(
-      { error: "Supabase is not configured. See .env.example." },
-      { status: 503 }
-    );
+    return jsonError(503, "Supabase is not configured. See .env.example.");
   }
   if (!isAiConfigured()) {
-    return NextResponse.json(
-      { error: "AI provider is not configured. Set OPENAI_API_KEY or MOCK_AI=true." },
-      { status: 503 }
-    );
+    return jsonError(503, "AI provider is not configured. Set OPENAI_API_KEY or MOCK_AI=true.");
   }
 
   const supabase = await createClient();
@@ -34,7 +32,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "You must be signed in to run an audit." }, { status: 401 });
+    return jsonError(401, "You must be signed in to run an audit.");
   }
 
   let url: string;
@@ -42,27 +40,29 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid request." },
-        { status: 400 }
-      );
+      return jsonError(400, parsed.error.issues[0]?.message ?? "Invalid request.");
     }
     url = normalizeUrl(parsed.data.url).toString();
   } catch (err) {
     if (err instanceof ScrapeError) {
-      return NextResponse.json({ error: err.userMessage }, { status: 400 });
+      return jsonError(400, err.userMessage);
     }
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return jsonError(400, "Invalid request body.");
   }
 
-  const quota = await getQuota(supabase, user.id);
+  const [quota, rateLimit] = await Promise.all([
+    getQuota(supabase, user.id),
+    checkRateLimits(supabase, user.id),
+  ]);
+
+  if (!rateLimit.ok) {
+    return jsonError(rateLimit.status, rateLimit.error, rateLimit.code);
+  }
   if (quota.exceeded) {
-    return NextResponse.json(
-      {
-        error: `You've used all ${quota.limit} audits on the free plan this month. Upgrade to Pro for unlimited audits.`,
-        code: "quota_exceeded",
-      },
-      { status: 402 }
+    return jsonError(
+      402,
+      `You've used all ${quota.limit} audits on the free plan this month. Upgrade to Pro for unlimited audits.`,
+      "quota_exceeded"
     );
   }
 
@@ -75,7 +75,19 @@ export async function POST(request: Request) {
 
   if (insertError || !audit) {
     console.error("[audits] insert failed:", insertError);
-    return NextResponse.json({ error: "Could not start the audit. Please try again." }, { status: 500 });
+    return jsonError(500, "Could not start the audit. Please try again.");
+  }
+
+  // Close the check-then-insert race: with our row now counted, being over
+  // the limit means a concurrent request beat us to the last slot.
+  const withinQuota = await confirmQuotaAfterInsert(supabase, user.id, quota.limit);
+  if (!withinQuota) {
+    await supabase.from("audits").delete().eq("id", audit.id);
+    return jsonError(
+      402,
+      `You've used all ${quota.limit} audits on the free plan this month. Upgrade to Pro for unlimited audits.`,
+      "quota_exceeded"
+    );
   }
 
   try {
@@ -94,7 +106,7 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error("[audits] update failed:", updateError);
-      return NextResponse.json({ error: "The audit finished but could not be saved." }, { status: 500 });
+      return jsonError(500, "The audit finished but could not be saved.");
     }
 
     return NextResponse.json({ id: audit.id }, { status: 201 });

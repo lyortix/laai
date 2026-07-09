@@ -15,6 +15,17 @@ export function formatDate(date: string | Date) {
   }).format(new Date(date));
 }
 
+/**
+ * Constrains a post-auth redirect target to same-origin paths so ?next=
+ * can never be abused as an open redirect.
+ */
+export function sanitizeNextPath(next: string | null | undefined, fallback = "/dashboard") {
+  if (!next) return fallback;
+  return next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
+    ? next
+    : fallback;
+}
+
 export function displayUrl(url: string) {
   try {
     const u = new URL(url);

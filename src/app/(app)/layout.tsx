@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/app/app-nav";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Plan } from "@/lib/types";
+
+// Authenticated pages must never be indexed.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isSupabaseConfigured()) {
@@ -38,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       <AppNav email={user.email ?? "account"} plan={plan} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         {children}
       </main>
     </div>

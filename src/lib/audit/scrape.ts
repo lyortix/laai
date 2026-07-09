@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+import { lookup } from "node:dns/promises";
 import * as cheerio from "cheerio";
 
 export interface PageSnapshot {
@@ -32,23 +34,87 @@ export class ScrapeError extends Error {
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_TEXT_CHARS = 8_000;
+const MAX_HTML_BYTES = 3 * 1024 * 1024; // 3 MB is plenty for any landing page
+const MAX_REDIRECTS = 5;
 
-function isBlockedHost(hostname: string) {
-  const host = hostname.toLowerCase();
+function isPrivateIpv4(ip: string) {
+  const octets = ip.split(".").map(Number);
+  if (octets.length !== 4 || octets.some((o) => Number.isNaN(o))) return true;
+  const [a, b] = octets;
+  return (
+    a === 0 || // "this" network
+    a === 10 ||
+    a === 127 || // loopback
+    (a === 100 && b >= 64 && b <= 127) || // CGNAT
+    (a === 169 && b === 254) || // link-local / cloud metadata
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224 // multicast + reserved
+  );
+}
+
+function isPrivateIpv6(ip: string) {
+  const lower = ip.toLowerCase();
+  return (
+    lower === "::" ||
+    lower === "::1" ||
+    lower.startsWith("fe80:") || // link-local
+    lower.startsWith("fc") || // unique local fc00::/7
+    lower.startsWith("fd") ||
+    lower.startsWith("::ffff:") // IPv4-mapped — re-checked below anyway
+  );
+}
+
+function isPrivateIp(ip: string) {
+  const mapped = ip.toLowerCase().startsWith("::ffff:") ? ip.slice(7) : ip;
+  const version = isIP(mapped);
+  if (version === 4) return isPrivateIpv4(mapped);
+  if (version === 6) return isPrivateIpv6(ip);
+  return true; // not an IP at all — treat as unsafe
+}
+
+function isBlockedHostname(hostname: string) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (isIP(host)) return isPrivateIp(host);
   return (
     host === "localhost" ||
     host.endsWith(".localhost") ||
     host.endsWith(".local") ||
     host.endsWith(".internal") ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    host === "0.0.0.0" ||
-    host === "[::1]" ||
-    host === "::1"
+    !host.includes(".")
   );
+}
+
+/**
+ * Resolves the hostname and rejects any address in a private, loopback,
+ * link-local or otherwise non-public range. This closes the classic SSRF
+ * bypass where a public domain name points at internal infrastructure.
+ */
+async function assertPubliclyRoutable(url: URL) {
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (isBlockedHostname(url.hostname)) {
+    throw new ScrapeError(
+      `Blocked host: ${url.hostname}`,
+      "That host can't be audited. Please use a public website URL."
+    );
+  }
+  if (isIP(host)) return; // literal IP already validated above
+
+  let addresses: { address: string }[];
+  try {
+    addresses = await lookup(host, { all: true, verbatim: true });
+  } catch {
+    throw new ScrapeError(
+      `DNS lookup failed for ${host}`,
+      "We couldn't find that domain. Check the URL for typos."
+    );
+  }
+  if (addresses.length === 0 || addresses.some((a) => isPrivateIp(a.address))) {
+    throw new ScrapeError(
+      `Host resolves to a non-public address: ${host}`,
+      "That host can't be audited. Please use a public website URL."
+    );
+  }
 }
 
 export function normalizeUrl(input: string): URL {
@@ -65,14 +131,97 @@ export function normalizeUrl(input: string): URL {
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     throw new ScrapeError(`Unsupported protocol: ${url.protocol}`, "Only http(s) URLs are supported.");
   }
-  if (isBlockedHost(url.hostname)) {
-    throw new ScrapeError(`Blocked host: ${url.hostname}`, "That host can't be audited. Please use a public website URL.");
+  if (url.username || url.password) {
+    throw new ScrapeError("Credentials in URL", "URLs with embedded credentials aren't supported.");
   }
-  if (!url.hostname.includes(".")) {
-    throw new ScrapeError(`Suspicious host: ${url.hostname}`, "Please enter a full domain, like yoursite.com.");
+  if (isBlockedHostname(url.hostname)) {
+    throw new ScrapeError(`Blocked host: ${url.hostname}`, "That host can't be audited. Please use a public website URL.");
   }
 
   return url;
+}
+
+/**
+ * Fetches a URL with redirects validated hop-by-hop (each target is
+ * DNS-checked against private ranges) and the response body capped at
+ * MAX_HTML_BYTES.
+ */
+async function safeFetch(startUrl: URL, signal: AbortSignal): Promise<{ res: Response; finalUrl: string; html: string }> {
+  let current = startUrl;
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    await assertPubliclyRoutable(current);
+
+    const res = await fetch(current.toString(), {
+      signal,
+      redirect: "manual",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; LandingRoastBot/1.0; +https://landingroast.ai/bot)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      res.body?.cancel();
+      if (!location) {
+        throw new ScrapeError(
+          `Redirect without location from ${current}`,
+          "The site returned a broken redirect."
+        );
+      }
+      current = new URL(location, current);
+      if (current.protocol !== "https:" && current.protocol !== "http:") {
+        throw new ScrapeError(
+          `Redirect to unsupported protocol: ${current.protocol}`,
+          "The site redirected somewhere we can't follow."
+        );
+      }
+      continue;
+    }
+
+    if (!res.ok) {
+      res.body?.cancel();
+      throw new ScrapeError(
+        `HTTP ${res.status} for ${current}`,
+        `The site responded with an error (HTTP ${res.status}). Make sure the page is publicly accessible.`
+      );
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (contentType && !contentType.includes("html")) {
+      res.body?.cancel();
+      throw new ScrapeError(
+        `Non-HTML content-type: ${contentType}`,
+        "That URL doesn't serve an HTML page. Point us at your landing page."
+      );
+    }
+
+    // Stream with a hard byte cap so giant pages can't exhaust memory.
+    const reader = res.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    if (reader) {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.byteLength;
+        if (received > MAX_HTML_BYTES) {
+          await reader.cancel();
+          break;
+        }
+        chunks.push(value);
+      }
+    }
+    const html = Buffer.concat(chunks).toString("utf8");
+    return { res, finalUrl: current.toString(), html };
+  }
+
+  throw new ScrapeError(
+    `Too many redirects from ${startUrl}`,
+    "The site redirected too many times. Check the URL."
+  );
 }
 
 /**
@@ -86,18 +235,12 @@ export async function scrapePage(rawUrl: string): Promise<PageSnapshot> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  let res: Response;
+  let finalUrl: string;
+  let html: string;
   try {
-    res = await fetch(url.toString(), {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; LandingRoastBot/1.0; +https://landingroast.ai/bot)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
+    ({ finalUrl, html } = await safeFetch(url, controller.signal));
   } catch (err) {
+    if (err instanceof ScrapeError) throw err;
     const aborted = err instanceof Error && err.name === "AbortError";
     throw new ScrapeError(
       `Fetch failed for ${url}: ${err instanceof Error ? err.message : String(err)}`,
@@ -109,22 +252,6 @@ export async function scrapePage(rawUrl: string): Promise<PageSnapshot> {
     clearTimeout(timeout);
   }
 
-  if (!res.ok) {
-    throw new ScrapeError(
-      `HTTP ${res.status} for ${url}`,
-      `The site responded with an error (HTTP ${res.status}). Make sure the page is publicly accessible.`
-    );
-  }
-
-  const contentType = res.headers.get("content-type") ?? "";
-  if (contentType && !contentType.includes("html")) {
-    throw new ScrapeError(
-      `Non-HTML content-type: ${contentType}`,
-      "That URL doesn't serve an HTML page. Point us at your landing page."
-    );
-  }
-
-  const html = await res.text();
   const $ = cheerio.load(html);
 
   $("script, style, noscript, svg, iframe").remove();
@@ -154,7 +281,7 @@ export async function scrapePage(rawUrl: string): Promise<PageSnapshot> {
 
   return {
     url: rawUrl,
-    finalUrl: res.url || url.toString(),
+    finalUrl,
     title: text("title"),
     metaDescription: attr('meta[name="description"]', "content"),
     ogTitle: attr('meta[property="og:title"]', "content"),

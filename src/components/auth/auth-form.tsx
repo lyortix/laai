@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
+import { sanitizeNextPath } from "@/lib/utils";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -18,8 +19,7 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/dashboard";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  const safeNext = sanitizeNextPath(searchParams.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

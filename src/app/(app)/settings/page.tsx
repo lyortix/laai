@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BadgeCheck, Check } from "lucide-react";
-import { UpgradeButton } from "@/components/billing/upgrade-button";
+import { ManageBillingButton, UpgradeButton } from "@/components/billing/upgrade-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,11 +123,13 @@ export default async function SettingsPage({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              You&apos;re on Pro — thanks for supporting LandingRoast! Manage or
-              cancel your subscription from the Stripe customer portal link in
-              your receipt emails.
-            </p>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You&apos;re on Pro — thanks for supporting LandingRoast! Update
+                your payment method or cancel any time via the customer portal.
+              </p>
+              <ManageBillingButton />
+            </div>
           )}
         </CardContent>
       </Card>

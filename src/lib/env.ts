@@ -13,7 +13,11 @@ export const env = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   stripePriceIdPro: process.env.STRIPE_PRICE_ID_PRO ?? "",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  appUrl:
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000"),
 };
 
 export const isSupabaseConfigured = () =>

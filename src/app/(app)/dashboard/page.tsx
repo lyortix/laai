@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getQuota } from "@/lib/audit/quota";
 import { createClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/billing/plans";
-import type { Audit } from "@/lib/types";
+import { AUDIT_LIST_COLUMNS, type AuditListItem } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -24,13 +24,13 @@ export default async function DashboardPage() {
     getQuota(supabase, user.id),
     supabase
       .from("audits")
-      .select("*")
+      .select(AUDIT_LIST_COLUMNS)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
   ]);
 
-  const recent = (audits ?? []) as Audit[];
+  const recent = (audits ?? []) as AuditListItem[];
   const completed = recent.filter((a) => a.status === "complete" && a.overall_score !== null);
   const bestScore = completed.length
     ? Math.max(...completed.map((a) => a.overall_score ?? 0))

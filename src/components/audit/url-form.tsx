@@ -70,25 +70,28 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
           message: data.error ?? "Something went wrong. Please try again.",
           upgrade: data.code === "quota_exceeded",
         });
+        setAnalyzing(false);
         return;
       }
 
       setStepIndex(ANALYSIS_STEPS.length - 1);
       router.push(`/audit/${data.id}`);
       // Keep the analyzing state on while the report page loads.
-      return;
     } catch {
       setError({ message: "Network error — check your connection and try again." });
+      setAnalyzing(false);
     } finally {
       stopStepTimers();
     }
-
-    setAnalyzing(false);
   }
 
   if (analyzing && !error) {
     return (
-      <div className="animate-fade-in rounded-xl border bg-card p-6 sm:p-8">
+      <div
+        role="status"
+        aria-live="polite"
+        className="animate-fade-in rounded-xl border bg-card p-6 sm:p-8"
+      >
         <div className="flex items-center gap-3">
           <div className="relative flex size-10 items-center justify-center rounded-full bg-primary/10">
             <Sparkles className="size-5 text-primary" />

@@ -10,6 +10,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -212,11 +213,16 @@ export function ReportView({ report }: { report: AuditReport }) {
         <TabsContent value="rewrites" className="mt-4 space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="animate-fade-up">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PenLine className="size-4 text-primary" /> Rewritten hero
-                </CardTitle>
-                <CardDescription>Copy-paste ready for your page.</CardDescription>
+              <CardHeader className="flex-row items-start justify-between space-y-0">
+                <div className="space-y-1.5">
+                  <CardTitle className="flex items-center gap-2">
+                    <PenLine className="size-4 text-primary" /> Rewritten hero
+                  </CardTitle>
+                  <CardDescription>Copy-paste ready for your page.</CardDescription>
+                </div>
+                <CopyButton
+                  text={`${report.rewrittenHero.headline}\n${report.rewrittenHero.subheadline}`}
+                />
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border bg-muted/40 p-5 text-center">
@@ -235,11 +241,16 @@ export function ReportView({ report }: { report: AuditReport }) {
             </Card>
 
             <Card className="animate-fade-up animation-delay-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquareQuote className="size-4 text-primary" /> Better CTAs
-                </CardTitle>
-                <CardDescription>Primary and secondary actions.</CardDescription>
+              <CardHeader className="flex-row items-start justify-between space-y-0">
+                <div className="space-y-1.5">
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquareQuote className="size-4 text-primary" /> Better CTAs
+                  </CardTitle>
+                  <CardDescription>Primary and secondary actions.</CardDescription>
+                </div>
+                <CopyButton
+                  text={`Primary CTA: ${report.betterCta.primary}\nSecondary CTA: ${report.betterCta.secondary}`}
+                />
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-center gap-3 rounded-lg border bg-muted/40 p-5">

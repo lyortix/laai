@@ -52,7 +52,16 @@ Billing is architected in but dormant until configured:
 2. Point a webhook at `/api/billing/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, and set `STRIPE_WEBHOOK_SECRET`.
 3. Set `SUPABASE_SERVICE_ROLE_KEY` so the webhook can update plans.
 
-Free plan: 3 audits/month. Pro: unlimited. Limits live in `src/lib/billing/plans.ts`.
+Free plan: 3 audits/month. Pro: unlimited. Limits live in `src/lib/billing/plans.ts`. Pro users manage/cancel via the Stripe customer portal (`/api/billing/portal`).
+
+## Rate limiting & abuse protection
+
+All DB-backed, so they hold across serverless instances:
+
+- **Monthly quota** per plan (failed audits don't count against it), with a post-insert recount that closes the concurrent-request race.
+- **One audit at a time** per user (stale `running` rows older than 2 minutes are ignored).
+- **10 audits/hour** hard cap for every plan.
+- **SSRF-guarded scraping**: DNS-resolved private/loopback/link-local/metadata ranges are rejected, redirects are validated hop-by-hop, responses are size-capped at 3 MB.
 
 ## Architecture
 

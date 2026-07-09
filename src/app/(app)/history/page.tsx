@@ -6,7 +6,7 @@ import { AuditCard } from "@/components/audit/audit-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import type { Audit } from "@/lib/types";
+import { AUDIT_LIST_COLUMNS, type AuditListItem } from "@/lib/types";
 
 export const metadata: Metadata = { title: "History" };
 
@@ -19,12 +19,12 @@ export default async function HistoryPage() {
 
   const { data } = await supabase
     .from("audits")
-    .select("*")
+    .select(AUDIT_LIST_COLUMNS)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100);
 
-  const audits = (data ?? []) as Audit[];
+  const audits = (data ?? []) as AuditListItem[];
 
   return (
     <div className="space-y-6">
@@ -52,7 +52,7 @@ export default async function HistoryPage() {
       ) : (
         <div className="animate-fade-up animation-delay-100 space-y-3">
           {audits.map((audit) => (
-            <AuditCard key={audit.id} audit={audit} />
+            <AuditCard key={audit.id} audit={audit} deletable />
           ))}
         </div>
       )}
