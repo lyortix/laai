@@ -9,7 +9,7 @@ Paste a website URL, get a premium AI-powered landing page audit in under 60 sec
 - **Tailwind CSS v4** + **shadcn/ui**-style component library
 - **Supabase** — auth (email/password + Google OAuth) and Postgres with RLS
 - **Stripe-ready billing** — checkout + webhook wired; flips on with env vars
-- **OpenAI-compatible AI layer** — works with OpenAI, Groq, Together, OpenRouter, Azure, Ollama…
+- **Pluggable AI provider layer** — Google Gemini by default (official `@google/genai` SDK), with any OpenAI-compatible API (OpenAI, Groq, Together, OpenRouter, Azure, Ollama…) as a drop-in alternative
 - Deploys to **Vercel** with zero config
 
 ## What an audit contains
@@ -42,7 +42,9 @@ npm run dev
 
 ### 2. AI provider
 
-Set `OPENAI_API_KEY` (and optionally `OPENAI_BASE_URL` / `AI_MODEL` for any OpenAI-compatible provider). For local development without a key, set `MOCK_AI=true` to get realistic sample reports.
+**Default: Google Gemini.** Grab a key from [AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. The default model is `gemini-2.5-flash` (override with `AI_MODEL`).
+
+Provider selection (`src/lib/ai/provider.ts`): `AI_PROVIDER` wins when set; otherwise Gemini is used whenever `GEMINI_API_KEY` exists, falling back to `OPENAI_API_KEY` + `OPENAI_BASE_URL` for any OpenAI-compatible API. For local development without any key, set `MOCK_AI=true` to get realistic sample reports.
 
 ### 3. Stripe (optional)
 

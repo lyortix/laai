@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return jsonError(503, "Supabase is not configured. See .env.example.");
   }
   if (!isAiConfigured()) {
-    return jsonError(503, "AI provider is not configured. Set OPENAI_API_KEY or MOCK_AI=true.");
+    return jsonError(503, "AI provider is not configured. Set GEMINI_API_KEY (or OPENAI_API_KEY / MOCK_AI=true).");
   }
 
   const supabase = await createClient();

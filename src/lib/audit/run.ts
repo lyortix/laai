@@ -1,5 +1,5 @@
-import { getAiClient } from "@/lib/ai/client";
 import { buildMockReport } from "@/lib/ai/mock";
+import { resolveProvider } from "@/lib/ai/provider";
 import { SYSTEM_PROMPT, buildUserPrompt } from "@/lib/ai/prompt";
 import { auditReportSchema, type AuditReport } from "@/lib/audit/schema";
 import { scrapePage, type PageSnapshot } from "@/lib/audit/scrape";
@@ -17,20 +17,6 @@ function extractJson(raw: string): string {
   const trimmed = raw.trim();
   const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   return fenced ? fenced[1] : trimmed;
-}
-
-async function requestCompletion(snapshot: PageSnapshot, useJsonMode: boolean) {
-  const client = getAiClient();
-  return client.chat.completions.create({
-    model: env.aiModel,
-    temperature: 0.4,
-    max_tokens: 6_000,
-    ...(useJsonMode ? { response_format: { type: "json_object" as const } } : {}),
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(snapshot) },
-    ],
-  });
 }
 
 function parseReport(raw: string): AuditReport {
@@ -60,25 +46,17 @@ async function generateReport(snapshot: PageSnapshot): Promise<AuditReport> {
     return buildMockReport(snapshot);
   }
 
-  // Not every OpenAI-compatible provider supports response_format; drop it
-  // and rely on prompt discipline if the first call rejects it.
-  let useJsonMode = true;
+  const provider = resolveProvider();
+  const input = { system: SYSTEM_PROMPT, user: buildUserPrompt(snapshot) };
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    let raw: string | null | undefined;
+    let raw: string;
     try {
-      const completion = await requestCompletion(snapshot, useJsonMode);
-      raw = completion.choices[0]?.message?.content;
+      raw = await provider.generateJson(input);
     } catch (err) {
-      lastError = err;
-      const message = err instanceof Error ? err.message : String(err);
-      if (useJsonMode && /response_format/i.test(message)) {
-        useJsonMode = false;
-        attempt--; // provider capability probe, not a real failure
-        continue;
-      }
-      continue; // transient provider error — retry
+      lastError = err; // transient provider error — retry
+      continue;
     }
 
     if (!raw) {
@@ -94,6 +72,7 @@ async function generateReport(snapshot: PageSnapshot): Promise<AuditReport> {
   }
 
   if (lastError instanceof AnalysisError) throw lastError;
+  console.error(`[ai] ${(lastError as Error)?.name ?? "error"} from provider:`, lastError);
   throw new AnalysisError(
     `Model call failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     "The AI service is having trouble right now. Please try again in a minute."
