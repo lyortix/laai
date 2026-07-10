@@ -33,17 +33,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect("/login");
 
+  // select("*") stays compatible with databases that haven't applied the
+  // 0002 migration (is_admin column) yet.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan")
+    .select("*")
     .eq("id", user.id)
     .single();
 
   const plan: Plan = profile?.plan === "pro" ? "pro" : "free";
+  const isAdmin = profile?.is_admin === true;
 
   return (
     <div className="flex min-h-screen flex-col">
-      <AppNav email={user.email ?? "account"} plan={plan} />
+      <AppNav email={user.email ?? "account"} plan={plan} isAdmin={isAdmin} />
       <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         {children}
       </main>

@@ -23,9 +23,10 @@ import type { Plan } from "@/lib/types";
 interface AppNavProps {
   email: string;
   plan: Plan;
+  isAdmin?: boolean;
 }
 
-export function AppNav({ email, plan }: AppNavProps) {
+export function AppNav({ email, plan, isAdmin = false }: AppNavProps) {
   const pathname = usePathname();
   const { t } = useI18n();
   const initial = (email[0] ?? "?").toUpperCase();
@@ -67,9 +68,15 @@ export function AppNav({ email, plan }: AppNavProps) {
 
         <div className="flex items-center gap-1.5">
           <FeedbackDialog />
-          <Badge variant={plan === "pro" ? "default" : "secondary"} className="uppercase">
-            {plan}
-          </Badge>
+          {isAdmin ? (
+            <Badge className="border-transparent bg-gradient-to-r from-indigo-500 to-fuchsia-500 uppercase text-white">
+              admin
+            </Badge>
+          ) : (
+            <Badge variant={plan === "pro" ? "default" : "secondary"} className="uppercase">
+              {plan}
+            </Badge>
+          )}
           <LanguageSwitcher />
           <ThemeToggle />
           <DropdownMenu>
