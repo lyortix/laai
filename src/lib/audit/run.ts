@@ -72,10 +72,19 @@ async function generateReport(snapshot: PageSnapshot): Promise<AuditReport> {
   }
 
   if (lastError instanceof AnalysisError) throw lastError;
+
+  const reason = lastError instanceof Error ? lastError.message : String(lastError);
   console.error(`[ai] ${(lastError as Error)?.name ?? "error"} from provider:`, lastError);
+
+  // During the test phase, surface the provider's real reason so misconfig
+  // (bad key, unavailable model, unsupported region) is diagnosable from the
+  // UI. Set DEBUG_AI_ERRORS=false to hide it before a public launch.
+  const showReason = process.env.DEBUG_AI_ERRORS !== "false";
   throw new AnalysisError(
-    `Model call failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
-    "The AI service is having trouble right now. Please try again in a minute."
+    `Model call failed: ${reason}`,
+    showReason
+      ? `AI provider error: ${reason.slice(0, 300)}`
+      : "The AI service is having trouble right now. Please try again in a minute."
   );
 }
 
