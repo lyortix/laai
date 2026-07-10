@@ -1,4 +1,5 @@
 import { buildMockReport } from "@/lib/ai/mock";
+import { isTransientProviderError } from "@/lib/ai/providers/gemini";
 import { resolveProvider } from "@/lib/ai/provider";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/ai/prompt";
 import { auditReportSchema, type AuditReport } from "@/lib/audit/schema";
@@ -48,7 +49,9 @@ function parseReport(raw: string): AuditReport {
   return result.data;
 }
 
-const MAX_ATTEMPTS = 2;
+const MAX_ATTEMPTS = 3;
+/** Pause before retrying a capacity error so we don't re-hit the same spike. */
+const TRANSIENT_BACKOFF_MS = 2_500;
 /**
  * Overall budget for AI generation. Kept below the platform's 60s function
  * limit so a slow model produces a clean, marked-failed audit (row not stuck
@@ -89,7 +92,10 @@ async function generateReport(snapshot: PageSnapshot, locale: Locale): Promise<A
     try {
       raw = await raceDeadline(provider.generateJson(input), remaining);
     } catch (err) {
-      lastError = err; // transient provider error — retry if budget allows
+      lastError = err; // provider error — retry if budget allows
+      if (isTransientProviderError(err) && deadline - Date.now() > MIN_RETRY_BUDGET_MS) {
+        await new Promise((r) => setTimeout(r, TRANSIENT_BACKOFF_MS));
+      }
       continue;
     }
 
