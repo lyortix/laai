@@ -12,6 +12,8 @@ export interface QuotaState {
 
 /** Abuse guard applied to every plan, including Pro. */
 export const HOURLY_AUDIT_CAP = 10;
+/** Admins get a raised monthly allowance without needing a Pro subscription. */
+export const ADMIN_MONTHLY_LIMIT = 15;
 /** An audit stuck in "running" longer than this is considered dead. */
 export const RUNNING_STALE_MS = 2 * 60 * 1000;
 
@@ -30,14 +32,19 @@ export async function getQuota(
   supabase: SupabaseClient,
   userId: string
 ): Promise<QuotaState> {
+  // select("*") keeps this resilient whether or not the 0002 migration
+  // (is_admin column) has been applied yet.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan")
+    .select("*")
     .eq("id", userId)
     .single();
 
   const plan: Plan = profile?.plan === "pro" ? "pro" : "free";
-  const limit = auditsAllowed(plan);
+  const isAdmin = profile?.is_admin === true;
+  // Pro stays unlimited; free admins get the raised allowance.
+  const limit =
+    plan === "free" && isAdmin ? ADMIN_MONTHLY_LIMIT : auditsAllowed(plan);
 
   const { count } = await supabase
     .from("audits")
