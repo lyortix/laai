@@ -33,7 +33,7 @@ export class ScrapeError extends Error {
 }
 
 const FETCH_TIMEOUT_MS = 15_000;
-const MAX_TEXT_CHARS = 8_000;
+const MAX_TEXT_CHARS = 4_000;
 const MAX_HTML_BYTES = 3 * 1024 * 1024; // 3 MB is plenty for any landing page
 const MAX_REDIRECTS = 5;
 

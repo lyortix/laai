@@ -35,8 +35,12 @@ export function createGeminiProvider(): AiProvider {
         config: {
           systemInstruction: system,
           temperature: 0.4,
-          maxOutputTokens: 8_192,
+          // Concise prompt keeps the real report ~2.5-3k tokens; this ceiling
+          // guards against runaway generation without risking truncation.
+          maxOutputTokens: 6_144,
           responseMimeType: "application/json",
+          // Disable "thinking" so Flash spends its time writing, not reasoning
+          // silently — critical for staying under the function time limit.
           thinkingConfig: { thinkingBudget: 0 },
         },
       });

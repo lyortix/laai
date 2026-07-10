@@ -18,7 +18,7 @@ You will receive a structured snapshot of a landing page (metadata, headings, CT
     "mobile": <SectionReview>
   },
   "topProblems": [3-5 of {"title": string, "severity": "critical"|"high"|"medium", "description": string}],
-  "improvements": [8-10 of {"title": string, "impact": "high"|"medium"|"low", "effort": "low"|"medium"|"high", "description": string}],
+  "improvements": [exactly 8 of {"title": string, "impact": "high"|"medium"|"low", "effort": "low"|"medium"|"high", "description": string}],
   "rewrittenHero": {"headline": string, "subheadline": string, "rationale": string},
   "betterCta": {"primary": string, "secondary": string, "rationale": string},
   "pricingSection": {"strategy": string, "tiers": [2-3 of {"name": string, "price": string, "description": string, "features": [3-5 strings], "highlighted": boolean}]},
@@ -26,7 +26,7 @@ You will receive a structured snapshot of a landing page (metadata, headings, CT
   "testimonials": [3 of {"quote": string, "name": string, "role": string}]
 }
 
-Where <SectionReview> = {"score": <0-100>, "verdict": "<one-sentence assessment>", "strengths": [1-3 strings], "issues": [1-4 strings], "recommendations": [1-4 strings]}.
+Where <SectionReview> = {"score": <0-100>, "verdict": "<one-sentence assessment>", "strengths": [2 strings], "issues": [2 strings], "recommendations": [2 strings]}.
 
 Rules:
 - Be concrete. Quote the page's actual copy when critiquing it. Never give generic advice that could apply to any site.
@@ -36,7 +36,7 @@ Rules:
 - rewrittenHero and betterCta must be tailored to THIS product, punchy, benefit-led, and immediately usable.
 - pricingSection, faq, and testimonials are SUGGESTIONS the site owner could adopt — write them in the site's voice for the site's audience. Testimonials must be clearly plausible personas (realistic first names + roles), never real people.
 - If the extracted copy is very sparse (likely a client-rendered SPA), audit what IS present — meta tags, title, initial markup — score accordingly, and note in the summary that most content is invisible to crawlers and first paint, which is itself a serious SEO and performance problem.
-- Keep every string under 400 characters. Output valid JSON only.`;
+- Be punchy and concise: keep every string under 140 characters (summary under 320). Brevity is mandatory — it keeps the audit fast. Output valid JSON only.`;
 
 export function buildUserPrompt(snapshot: PageSnapshot): string {
   const lines = [

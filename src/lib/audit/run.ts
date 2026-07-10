@@ -38,6 +38,24 @@ function parseReport(raw: string): AuditReport {
 }
 
 const MAX_ATTEMPTS = 2;
+/**
+ * Overall budget for AI generation. Kept below the platform's 60s function
+ * limit so a slow model produces a clean, marked-failed audit (row not stuck
+ * "running") instead of an opaque platform 504.
+ */
+const AI_DEADLINE_MS = 50_000;
+/** Don't start another attempt unless at least this much budget remains. */
+const MIN_RETRY_BUDGET_MS = 12_000;
+
+const AI_TIMEOUT = Symbol("ai-timeout");
+
+function raceDeadline<T>(promise: Promise<T>, ms: number): Promise<T | typeof AI_TIMEOUT> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<typeof AI_TIMEOUT>((resolve) => {
+    timer = setTimeout(() => resolve(AI_TIMEOUT), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 async function generateReport(snapshot: PageSnapshot): Promise<AuditReport> {
   if (env.mockAi) {
@@ -48,15 +66,27 @@ async function generateReport(snapshot: PageSnapshot): Promise<AuditReport> {
 
   const provider = resolveProvider();
   const input = { system: SYSTEM_PROMPT, user: buildUserPrompt(snapshot) };
+  const deadline = Date.now() + AI_DEADLINE_MS;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    let raw: string;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    if (attempt > 1 && remaining < MIN_RETRY_BUDGET_MS) break;
+
+    let raw: string | typeof AI_TIMEOUT;
     try {
-      raw = await provider.generateJson(input);
+      raw = await raceDeadline(provider.generateJson(input), remaining);
     } catch (err) {
-      lastError = err; // transient provider error — retry
+      lastError = err; // transient provider error — retry if budget allows
       continue;
+    }
+
+    if (raw === AI_TIMEOUT) {
+      throw new AnalysisError(
+        "AI generation exceeded the time budget",
+        "The analysis took too long and was stopped. Please try again — it usually completes on a second attempt."
+      );
     }
 
     if (!raw) {
