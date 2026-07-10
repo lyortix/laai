@@ -2,7 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import { env } from "@/lib/env";
 import type { AiProvider } from "@/lib/ai/provider";
 
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+// Rolling alias that always resolves to the current stable Flash model, so a
+// model being retired for new users can't break us again. Pin a specific
+// version via AI_MODEL if you need reproducibility.
+const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 
 let client: GoogleGenAI | null = null;
 
