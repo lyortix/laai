@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
 
 export default function GlobalError({
   error,
@@ -11,6 +12,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     console.error("[app] unhandled error:", error);
   }, [error]);
@@ -20,13 +22,11 @@ export default function GlobalError({
       <div className="flex size-14 items-center justify-center rounded-2xl border bg-card shadow-sm">
         <AlertTriangle className="size-6 text-amber-500" />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight">Something went wrong</h1>
-      <p className="max-w-sm text-muted-foreground">
-        An unexpected error occurred. Your data is safe — try again.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight">{t.errorPage.title}</h1>
+      <p className="max-w-sm text-muted-foreground">{t.errorPage.body}</p>
       <Button onClick={reset} className="mt-2">
         <RotateCw />
-        Try again
+        {t.common.tryAgain}
       </Button>
     </div>
   );

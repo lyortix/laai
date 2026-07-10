@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
 
-export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+export function CopyButton({ text }: { text: string }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,11 +33,11 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
       variant="ghost"
       size="sm"
       onClick={handleCopy}
-      aria-label={copied ? "Copied" : label}
+      aria-label={copied ? t.common.copied : t.common.copy}
       className="text-muted-foreground"
     >
       {copied ? <Check className="text-emerald-500" /> : <Copy />}
-      {copied ? "Copied" : label}
+      {copied ? t.common.copied : t.common.copy}
     </Button>
   );
 }

@@ -2,15 +2,19 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getDictionary } from "@/lib/i18n/server";
 
 const mockScores = [
-  { label: "Hero Section", score: 58, tone: "bg-amber-500" },
-  { label: "Call to Action", score: 42, tone: "bg-red-500" },
-  { label: "Trust & Social Proof", score: 71, tone: "bg-amber-500" },
-  { label: "SEO", score: 88, tone: "bg-emerald-500" },
+  { key: "hero" as const, score: 58, tone: "bg-amber-500" },
+  { key: "cta" as const, score: 42, tone: "bg-red-500" },
+  { key: "trust" as const, score: 71, tone: "bg-amber-500" },
+  { key: "seo" as const, score: 88, tone: "bg-emerald-500" },
 ];
 
-export function Hero() {
+export async function Hero() {
+  const t = await getDictionary();
+  const h = t.marketing.hero;
+
   return (
     <section className="relative overflow-hidden">
       <div className="bg-grid pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_60%,transparent_100%)]" />
@@ -20,36 +24,34 @@ export function Hero() {
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="secondary" className="animate-fade-up gap-1.5 px-3 py-1">
             <Sparkles className="size-3 text-violet-500" />
-            AI-powered conversion audits
+            {h.badge}
           </Badge>
 
           <h1 className="animate-fade-up animation-delay-100 mt-6 text-balance text-4xl font-bold tracking-tight sm:text-6xl">
-            Your landing page is leaking money.
+            {h.titleLine1}
             <br />
-            <span className="text-gradient">Find out where in 60 seconds.</span>
+            <span className="text-gradient">{h.titleLine2}</span>
           </h1>
 
           <p className="animate-fade-up animation-delay-200 mx-auto mt-6 max-w-xl text-pretty text-lg text-muted-foreground">
-            Paste a URL and get a brutally honest AI audit: scores across 8
-            dimensions, your top problems, rewritten hero copy, and a
-            prioritized fix list.
+            {h.subtitle}
           </p>
 
           <div className="animate-fade-up animation-delay-300 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="group w-full sm:w-auto">
               <Link href="/signup">
-                Roast my landing page
+                {h.ctaPrimary}
                 <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-              <Link href="/#how-it-works">See how it works</Link>
+              <Link href="/#how-it-works">{h.ctaSecondary}</Link>
             </Button>
           </div>
 
           <p className="animate-fade-up animation-delay-400 mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
             <Timer className="size-3.5" />
-            Free plan · No credit card · Results in under a minute
+            {h.note}
           </p>
         </div>
 
@@ -60,22 +62,20 @@ export function Hero() {
             <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
               <div>
                 <p className="text-sm text-muted-foreground">acme-startup.com</p>
-                <p className="mt-1 font-semibold">Landing Page Audit</p>
+                <p className="mt-1 font-semibold">{h.previewLabel}</p>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-4xl font-bold tabular-nums text-amber-500">61</span>
-                <div className="text-left text-xs leading-tight text-muted-foreground">
-                  Overall
-                  <br />
-                  score
+                <div className="max-w-16 text-left text-xs leading-tight text-muted-foreground">
+                  {h.previewOverall}
                 </div>
               </div>
             </div>
             <div className="mt-6 space-y-3">
               {mockScores.map((row) => (
-                <div key={row.label} className="flex items-center gap-4">
+                <div key={row.key} className="flex items-center gap-4">
                   <span className="w-40 shrink-0 text-sm text-muted-foreground">
-                    {row.label}
+                    {h.previewRows[row.key]}
                   </span>
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
@@ -91,12 +91,9 @@ export function Hero() {
             </div>
             <div className="mt-6 rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-left">
               <p className="text-xs font-semibold uppercase tracking-wide text-red-500">
-                Top problem · Critical
+                {h.previewProblem}
               </p>
-              <p className="mt-1 text-sm">
-                &ldquo;Your CTA says <em>Submit</em>. Nobody wakes up wanting to
-                submit. Tell visitors what they get.&rdquo;
-              </p>
+              <p className="mt-1 text-sm">{h.previewQuote}</p>
             </div>
           </div>
         </div>

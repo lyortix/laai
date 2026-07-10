@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DeleteAuditButton } from "@/components/audit/delete-audit-button";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { cn, displayUrl, formatDate, scoreColor } from "@/lib/utils";
 import type { AuditListItem } from "@/lib/types";
 
@@ -15,10 +16,18 @@ interface AuditCardProps {
  * One row in the audit history / recent list. Uses a stretched-link overlay
  * so the whole card is clickable while the delete button stays interactive.
  */
-export function AuditCard({ audit, deletable = false }: AuditCardProps) {
+export async function AuditCard({ audit, deletable = false }: AuditCardProps) {
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
   const failed = audit.status === "failed";
   const complete = audit.status === "complete";
   const label = displayUrl(audit.url);
+
+  // Failed audits store a locale-independent code when available; fall back
+  // to raw text for rows created before codes existed.
+  const codes = t.errors.codes as Record<string, string>;
+  const failureText = failed
+    ? (audit.error && codes[audit.error]) || audit.error || t.history.failedFallback
+    : null;
 
   return (
     <div
@@ -42,7 +51,7 @@ export function AuditCard({ audit, deletable = false }: AuditCardProps) {
           {failed && (
             <Badge variant="danger" className="shrink-0">
               <AlertTriangle />
-              Failed
+              {t.history.failed}
             </Badge>
           )}
           {!failed && !complete && (
@@ -53,12 +62,10 @@ export function AuditCard({ audit, deletable = false }: AuditCardProps) {
           )}
         </div>
         <p className="mt-1 truncate text-sm text-muted-foreground">
-          {failed
-            ? audit.error ?? "The audit could not be completed."
-            : audit.site_title || formatDate(audit.created_at)}
+          {failed ? failureText : audit.site_title || formatDate(audit.created_at, locale)}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground/70">
-          {formatDate(audit.created_at)}
+          {formatDate(audit.created_at, locale)}
         </p>
       </div>
 

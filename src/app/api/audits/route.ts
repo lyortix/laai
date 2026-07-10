@@ -3,6 +3,8 @@ import { z } from "zod";
 import { runAudit, AnalysisError } from "@/lib/audit/run";
 import { checkRateLimits, confirmQuotaAfterInsert, getQuota } from "@/lib/audit/quota";
 import { ScrapeError, normalizeUrl } from "@/lib/audit/scrape";
+import { buildDetectedSignals } from "@/lib/audit/signals";
+import { getLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { isAiConfigured, isSupabaseConfigured } from "@/lib/env";
 
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return jsonError(401, "You must be signed in to run an audit.");
+    return jsonError(401, "You must be signed in to run an audit.", "not_authenticated");
   }
 
   let url: string;
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
     url = normalizeUrl(parsed.data.url).toString();
   } catch (err) {
     if (err instanceof ScrapeError) {
-      return jsonError(400, err.userMessage);
+      return jsonError(400, err.userMessage, err.code);
     }
     return jsonError(400, "Invalid request body.");
   }
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
 
   if (insertError || !audit) {
     console.error("[audits] insert failed:", insertError);
-    return jsonError(500, "Could not start the audit. Please try again.");
+    return jsonError(500, "Could not start the audit. Please try again.", "start_failed");
   }
 
   // Close the check-then-insert race: with our row now counted, being over
@@ -91,7 +93,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { report, snapshot } = await runAudit(url);
+    const locale = await getLocale();
+    const { report, snapshot } = await runAudit(url, locale);
+    // Ground-truth page facts computed by the scraper, not the model.
+    report.detectedSignals = buildDetectedSignals(snapshot);
 
     const { error: updateError } = await supabase
       .from("audits")
@@ -106,23 +111,24 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error("[audits] update failed:", updateError);
-      return jsonError(500, "The audit finished but could not be saved.");
+      return jsonError(500, "The audit finished but could not be saved.", "save_failed");
     }
 
     return NextResponse.json({ id: audit.id }, { status: 201 });
   } catch (err) {
-    const userMessage =
-      err instanceof ScrapeError || err instanceof AnalysisError
-        ? err.userMessage
-        : "Something went wrong while analyzing the page. Please try again.";
+    const known = err instanceof ScrapeError || err instanceof AnalysisError;
+    const userMessage = known ? err.userMessage : "Something went wrong while analyzing the page. Please try again.";
+    const code = known ? err.code : "analysis_failed";
 
     console.error("[audits] run failed:", err);
 
+    // Store the locale-independent code when we have one so the UI can render
+    // the failure in whatever language the viewer uses later.
     await supabase
       .from("audits")
-      .update({ status: "failed", error: userMessage, completed_at: new Date().toISOString() })
+      .update({ status: "failed", error: code ?? userMessage, completed_at: new Date().toISOString() })
       .eq("id", audit.id);
 
-    return NextResponse.json({ error: userMessage, id: audit.id }, { status: 422 });
+    return NextResponse.json({ error: userMessage, code, id: audit.id }, { status: 422 });
   }
 }

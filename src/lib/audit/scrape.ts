@@ -26,7 +26,12 @@ export interface PageSnapshot {
 }
 
 export class ScrapeError extends Error {
-  constructor(message: string, public readonly userMessage: string) {
+  constructor(
+    message: string,
+    public readonly userMessage: string,
+    /** Locale-independent code; the UI translates it (see errors.codes). */
+    public readonly code: string = "fetch_failed"
+  ) {
     super(message);
     this.name = "ScrapeError";
   }
@@ -95,7 +100,8 @@ async function assertPubliclyRoutable(url: URL) {
   if (isBlockedHostname(url.hostname)) {
     throw new ScrapeError(
       `Blocked host: ${url.hostname}`,
-      "That host can't be audited. Please use a public website URL."
+      "That host can't be audited. Please use a public website URL.",
+      "blocked_host"
     );
   }
   if (isIP(host)) return; // literal IP already validated above
@@ -106,13 +112,15 @@ async function assertPubliclyRoutable(url: URL) {
   } catch {
     throw new ScrapeError(
       `DNS lookup failed for ${host}`,
-      "We couldn't find that domain. Check the URL for typos."
+      "We couldn't find that domain. Check the URL for typos.",
+      "dns_failed"
     );
   }
   if (addresses.length === 0 || addresses.some((a) => isPrivateIp(a.address))) {
     throw new ScrapeError(
       `Host resolves to a non-public address: ${host}`,
-      "That host can't be audited. Please use a public website URL."
+      "That host can't be audited. Please use a public website URL.",
+      "blocked_host"
     );
   }
 }
@@ -125,17 +133,17 @@ export function normalizeUrl(input: string): URL {
   try {
     url = new URL(withProtocol);
   } catch {
-    throw new ScrapeError(`Invalid URL: ${input}`, "That doesn't look like a valid URL. Try something like example.com.");
+    throw new ScrapeError(`Invalid URL: ${input}`, "That doesn't look like a valid URL. Try something like example.com.", "invalid_url");
   }
 
   if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new ScrapeError(`Unsupported protocol: ${url.protocol}`, "Only http(s) URLs are supported.");
+    throw new ScrapeError(`Unsupported protocol: ${url.protocol}`, "Only http(s) URLs are supported.", "unsupported_protocol");
   }
   if (url.username || url.password) {
-    throw new ScrapeError("Credentials in URL", "URLs with embedded credentials aren't supported.");
+    throw new ScrapeError("Credentials in URL", "URLs with embedded credentials aren't supported.", "credentials_url");
   }
   if (isBlockedHostname(url.hostname)) {
-    throw new ScrapeError(`Blocked host: ${url.hostname}`, "That host can't be audited. Please use a public website URL.");
+    throw new ScrapeError(`Blocked host: ${url.hostname}`, "That host can't be audited. Please use a public website URL.", "blocked_host");
   }
 
   return url;
@@ -168,14 +176,16 @@ async function safeFetch(startUrl: URL, signal: AbortSignal): Promise<{ res: Res
       if (!location) {
         throw new ScrapeError(
           `Redirect without location from ${current}`,
-          "The site returned a broken redirect."
+          "The site returned a broken redirect.",
+          "broken_redirect"
         );
       }
       current = new URL(location, current);
       if (current.protocol !== "https:" && current.protocol !== "http:") {
         throw new ScrapeError(
           `Redirect to unsupported protocol: ${current.protocol}`,
-          "The site redirected somewhere we can't follow."
+          "The site redirected somewhere we can't follow.",
+          "broken_redirect"
         );
       }
       continue;
@@ -185,7 +195,8 @@ async function safeFetch(startUrl: URL, signal: AbortSignal): Promise<{ res: Res
       res.body?.cancel();
       throw new ScrapeError(
         `HTTP ${res.status} for ${current}`,
-        `The site responded with an error (HTTP ${res.status}). Make sure the page is publicly accessible.`
+        `The site responded with an error (HTTP ${res.status}). Make sure the page is publicly accessible.`,
+        "http_error"
       );
     }
 
@@ -194,7 +205,8 @@ async function safeFetch(startUrl: URL, signal: AbortSignal): Promise<{ res: Res
       res.body?.cancel();
       throw new ScrapeError(
         `Non-HTML content-type: ${contentType}`,
-        "That URL doesn't serve an HTML page. Point us at your landing page."
+        "That URL doesn't serve an HTML page. Point us at your landing page.",
+        "non_html"
       );
     }
 
@@ -220,7 +232,8 @@ async function safeFetch(startUrl: URL, signal: AbortSignal): Promise<{ res: Res
 
   throw new ScrapeError(
     `Too many redirects from ${startUrl}`,
-    "The site redirected too many times. Check the URL."
+    "The site redirected too many times. Check the URL.",
+    "too_many_redirects"
   );
 }
 
@@ -246,7 +259,8 @@ export async function scrapePage(rawUrl: string): Promise<PageSnapshot> {
       `Fetch failed for ${url}: ${err instanceof Error ? err.message : String(err)}`,
       aborted
         ? "The site took too long to respond (15s). Try again or check the URL."
-        : "We couldn't reach that site. Check the URL and make sure it's publicly accessible."
+        : "We couldn't reach that site. Check the URL and make sure it's publicly accessible.",
+      aborted ? "timeout" : "fetch_failed"
     );
   } finally {
     clearTimeout(timeout);

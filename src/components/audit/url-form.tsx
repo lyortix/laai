@@ -7,15 +7,11 @@ import { AlertCircle, ArrowRight, Check, Globe, Loader2, Sparkles } from "lucide
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 
-const ANALYSIS_STEPS = [
-  { label: "Fetching your page", at: 0 },
-  { label: "Extracting copy, CTAs & metadata", at: 3_000 },
-  { label: "Scoring 8 conversion dimensions", at: 7_000 },
-  { label: "Rewriting your hero & CTAs", at: 16_000 },
-  { label: "Compiling your action plan", at: 26_000 },
-] as const;
+const STEP_TIMINGS = [0, 3_000, 7_000, 16_000, 26_000];
 
 interface UrlFormProps {
   quotaExceeded?: boolean;
@@ -24,24 +20,34 @@ interface UrlFormProps {
 
 export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [url, setUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<{ message: string; upgrade?: boolean } | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  const steps = t.urlForm.steps;
+
   useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
 
   function startStepTimers() {
     setStepIndex(0);
-    timersRef.current = ANALYSIS_STEPS.slice(1).map((step, i) =>
-      setTimeout(() => setStepIndex(i + 1), step.at)
+    timersRef.current = STEP_TIMINGS.slice(1).map((at, i) =>
+      setTimeout(() => setStepIndex(i + 1), at)
     );
   }
 
   function stopStepTimers() {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+  }
+
+  /** Prefer the locale-independent code; fall back to the server's message. */
+  function localizeError(data: { error?: string; code?: string }): string {
+    const codes = t.errors.codes as Record<string, string>;
+    if (data.code && codes[data.code]) return codes[data.code];
+    return data.error ?? t.errors.generic;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -67,18 +73,18 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
 
       if (!res.ok) {
         setError({
-          message: data.error ?? "Something went wrong. Please try again.",
+          message: localizeError(data),
           upgrade: data.code === "quota_exceeded",
         });
         setAnalyzing(false);
         return;
       }
 
-      setStepIndex(ANALYSIS_STEPS.length - 1);
+      setStepIndex(steps.length - 1);
       router.push(`/audit/${data.id}`);
       // Keep the analyzing state on while the report page loads.
     } catch {
-      setError({ message: "Network error — check your connection and try again." });
+      setError({ message: t.urlForm.networkError });
       setAnalyzing(false);
     } finally {
       stopStepTimers();
@@ -98,19 +104,19 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
             <span className="animate-pulse-glow absolute inset-0 rounded-full ring-2 ring-primary/40" />
           </div>
           <div>
-            <p className="font-semibold">Roasting {url.replace(/^https?:\/\//, "")}</p>
-            <p className="text-sm text-muted-foreground">
-              This usually takes 20–45 seconds. Don&apos;t close the tab.
+            <p className="font-semibold">
+              {format(t.urlForm.analyzingTitle, { url: url.replace(/^https?:\/\//, "") })}
             </p>
+            <p className="text-sm text-muted-foreground">{t.urlForm.analyzingSubtitle}</p>
           </div>
         </div>
         <ol className="mt-6 space-y-3">
-          {ANALYSIS_STEPS.map((step, i) => {
+          {steps.map((step, i) => {
             const done = i < stepIndex;
             const active = i === stepIndex;
             return (
               <li
-                key={step.label}
+                key={step}
                 className={cn(
                   "flex items-center gap-3 text-sm transition-colors duration-300",
                   done && "text-muted-foreground",
@@ -131,7 +137,7 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
                     <Loader2 className="size-3 animate-spin text-primary" />
                   ) : null}
                 </span>
-                {step.label}
+                {step}
               </li>
             );
           })}
@@ -139,7 +145,7 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
         <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 transition-all duration-1000 ease-out"
-            style={{ width: `${Math.min(92, ((stepIndex + 1) / ANALYSIS_STEPS.length) * 100)}%` }}
+            style={{ width: `${Math.min(92, ((stepIndex + 1) / steps.length) * 100)}%` }}
           />
         </div>
       </div>
@@ -151,12 +157,12 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
       {error && (
         <Alert variant="destructive" className="animate-fade-in">
           <AlertCircle />
-          <AlertTitle>Audit failed</AlertTitle>
+          <AlertTitle>{t.urlForm.failedTitle}</AlertTitle>
           <AlertDescription>
             <p>{error.message}</p>
             {error.upgrade && (
               <Button asChild size="sm" className="mt-2">
-                <Link href="/settings">Upgrade to Pro</Link>
+                <Link href="/settings">{t.urlForm.upgradeCta}</Link>
               </Button>
             )}
           </AlertDescription>
@@ -173,8 +179,8 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
             type="text"
             inputMode="url"
             required
-            placeholder="yoursite.com or a competitor's"
-            aria-label="Website URL to audit"
+            placeholder={t.urlForm.placeholder}
+            aria-label={t.urlForm.ariaLabel}
             className="h-11 border-0 pl-9 text-base shadow-none focus-visible:ring-0"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -187,24 +193,23 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
           className="group sm:w-auto"
           disabled={quotaExceeded || !url.trim()}
         >
-          Roast it
+          {t.urlForm.submit}
           <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
         </Button>
       </form>
 
       {quotaExceeded ? (
         <p className="text-sm text-muted-foreground">
-          You&apos;ve used all your free audits this month.{" "}
+          {t.urlForm.quotaExceededNote}{" "}
           <Link href="/settings" className="font-medium text-foreground underline-offset-4 hover:underline">
-            Upgrade to Pro
+            {t.urlForm.upgradeCta}
           </Link>{" "}
-          for unlimited audits.
+          {t.urlForm.quotaUpgradeNote}
         </p>
       ) : (
         remaining !== null && (
           <p className="text-sm text-muted-foreground">
-            {remaining} audit{remaining === 1 ? "" : "s"} remaining this month on
-            the free plan.
+            {format(t.urlForm.remainingNote, { n: remaining })}
           </p>
         )
       )}

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useI18n } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeNextPath } from "@/lib/utils";
 
@@ -19,6 +21,7 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const safeNext = sanitizeNextPath(searchParams.get("next"));
 
   const [email, setEmail] = useState("");
@@ -27,7 +30,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(
-    searchParams.get("error") === "auth" ? "Sign-in failed. Please try again." : null
+    searchParams.get("error") === "auth" ? t.auth.signInRetry : null
   );
   const [confirmationSent, setConfirmationSent] = useState(false);
 
@@ -65,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : t.auth.genericError);
     } finally {
       setLoading(false);
     }
@@ -91,10 +94,9 @@ export function AuthForm({ mode }: AuthFormProps) {
     return (
       <Alert className="animate-fade-in">
         <MailCheck />
-        <AlertTitle>Check your inbox</AlertTitle>
+        <AlertTitle>{t.auth.checkInbox}</AlertTitle>
         <AlertDescription>
-          We sent a confirmation link to <strong>{email}</strong>. Click it to
-          activate your account, then sign in.
+          {format(t.auth.confirmationSent, { email })}
         </AlertDescription>
       </Alert>
     );
@@ -105,7 +107,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       {error && (
         <Alert variant="destructive" className="animate-fade-in">
           <AlertCircle />
-          <AlertTitle>{isLogin ? "Sign-in failed" : "Sign-up failed"}</AlertTitle>
+          <AlertTitle>{isLogin ? t.auth.signInFailed : t.auth.signUpFailed}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -127,23 +129,23 @@ export function AuthForm({ mode }: AuthFormProps) {
             />
           </svg>
         )}
-        Continue with Google
+        {t.auth.continueWithGoogle}
       </Button>
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
-        <span className="text-xs uppercase text-muted-foreground">or</span>
+        <span className="text-xs uppercase text-muted-foreground">{t.auth.or}</span>
         <Separator className="flex-1" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full name</Label>
+            <Label htmlFor="fullName">{t.auth.fullName}</Label>
             <Input
               id="fullName"
               autoComplete="name"
-              placeholder="Ada Lovelace"
+              placeholder={t.auth.fullNamePlaceholder}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               disabled={loading}
@@ -151,12 +153,12 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
         )}
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t.auth.email}</Label>
           <Input
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="you@company.com"
+            placeholder={t.auth.emailPlaceholder}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -164,12 +166,12 @@ export function AuthForm({ mode }: AuthFormProps) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t.auth.password}</Label>
           <Input
             id="password"
             type="password"
             autoComplete={isLogin ? "current-password" : "new-password"}
-            placeholder={isLogin ? "••••••••" : "At least 8 characters"}
+            placeholder={isLogin ? t.auth.passwordPlaceholderLogin : t.auth.passwordPlaceholderSignup}
             required
             minLength={isLogin ? undefined : 8}
             value={password}
@@ -179,23 +181,23 @@ export function AuthForm({ mode }: AuthFormProps) {
         </div>
         <Button type="submit" className="w-full" disabled={loading || oauthLoading}>
           {loading && <Loader2 className="animate-spin" />}
-          {isLogin ? "Sign in" : "Create account"}
+          {isLogin ? t.auth.signIn : t.auth.createAccount}
         </Button>
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
         {isLogin ? (
           <>
-            New to LandingRoast?{" "}
+            {t.auth.newHere}{" "}
             <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
-              Create an account
+              {t.auth.createAccount}
             </Link>
           </>
         ) : (
           <>
-            Already have an account?{" "}
+            {t.auth.haveAccount}{" "}
             <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
-              Sign in
+              {t.auth.signIn}
             </Link>
           </>
         )}

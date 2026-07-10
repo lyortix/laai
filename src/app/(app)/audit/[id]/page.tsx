@@ -7,7 +7,9 @@ import { ReportView } from "@/components/audit/report-view";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { auditReportSchema } from "@/lib/audit/schema";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { format } from "@/lib/i18n/format";
 import { displayUrl, formatDate } from "@/lib/utils";
 import type { Audit } from "@/lib/types";
 
@@ -19,6 +21,7 @@ export default async function AuditPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +49,7 @@ export default async function AuditPage({
         <div className="min-w-0">
           <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1 text-muted-foreground">
             <Link href="/history">
-              <ArrowLeft /> Back to history
+              <ArrowLeft /> {t.audit.backToHistory}
             </Link>
           </Button>
           <h1 className="truncate text-2xl font-bold tracking-tight">
@@ -54,12 +57,12 @@ export default async function AuditPage({
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {audit.site_title ? `${audit.site_title} · ` : ""}
-            Audited {formatDate(audit.created_at)}
+            {format(t.audit.auditedOn, { date: formatDate(audit.created_at, locale) })}
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
           <a href={audit.url} target="_blank" rel="noopener noreferrer">
-            Visit page <ExternalLink />
+            {t.audit.visitPage} <ExternalLink />
           </a>
         </Button>
       </div>
@@ -67,12 +70,16 @@ export default async function AuditPage({
       {audit.status === "failed" && (
         <Alert variant="destructive" className="animate-fade-in">
           <AlertCircle />
-          <AlertTitle>This audit failed</AlertTitle>
+          <AlertTitle>{t.audit.failedTitle}</AlertTitle>
           <AlertDescription>
-            <p>{audit.error ?? "Something went wrong while analyzing this page."}</p>
+            <p>
+              {(audit.error && (t.errors.codes as Record<string, string>)[audit.error]) ||
+                audit.error ||
+                t.audit.failedFallback}
+            </p>
             <Button asChild size="sm" variant="outline" className="mt-2">
               <Link href="/dashboard">
-                <RotateCw /> Try again
+                <RotateCw /> {t.common.tryAgain}
               </Link>
             </Button>
           </AlertDescription>
@@ -84,11 +91,8 @@ export default async function AuditPage({
           <AutoRefresh />
           <Alert className="animate-fade-in">
             <RotateCw className="animate-spin" />
-            <AlertTitle>Audit in progress</AlertTitle>
-            <AlertDescription>
-              This audit is still running — the report will appear here
-              automatically when it&apos;s ready.
-            </AlertDescription>
+            <AlertTitle>{t.audit.inProgressTitle}</AlertTitle>
+            <AlertDescription>{t.audit.inProgressBody}</AlertDescription>
           </Alert>
         </>
       )}
@@ -99,10 +103,8 @@ export default async function AuditPage({
         ) : (
           <Alert variant="destructive" className="animate-fade-in">
             <AlertCircle />
-            <AlertTitle>Report unavailable</AlertTitle>
-            <AlertDescription>
-              This report could not be loaded. Please run the audit again.
-            </AlertDescription>
+            <AlertTitle>{t.audit.unavailableTitle}</AlertTitle>
+            <AlertDescription>{t.audit.unavailableBody}</AlertDescription>
           </Alert>
         ))}
     </div>

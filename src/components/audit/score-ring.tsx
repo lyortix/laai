@@ -1,10 +1,13 @@
-import { cn, scoreLabel } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ScoreRingProps {
   score: number;
+  /** Translated score band label (e.g. "Excellent" / "Mükemmel"). */
+  label?: string;
+  /** Translated aria-label for the whole gauge. */
+  ariaLabel?: string;
   size?: number;
   strokeWidth?: number;
-  showLabel?: boolean;
   className?: string;
 }
 
@@ -17,9 +20,10 @@ function ringColor(score: number) {
 /** Animated circular score gauge, SVG-only (no JS on the client). */
 export function ScoreRing({
   score,
+  label,
+  ariaLabel,
   size = 120,
   strokeWidth = 8,
-  showLabel = true,
   className,
 }: ScoreRingProps) {
   const radius = (size - strokeWidth) / 2;
@@ -30,7 +34,7 @@ export function ScoreRing({
     <div
       className={cn("animate-score-pop relative inline-flex items-center justify-center", className)}
       role="img"
-      aria-label={`Score: ${score} out of 100 — ${scoreLabel(score)}`}
+      aria-label={ariaLabel ?? `${score}/100`}
     >
       <svg width={size} height={size} className="-rotate-90">
         <circle
@@ -57,9 +61,7 @@ export function ScoreRing({
         <span className="font-bold tabular-nums" style={{ fontSize: size / 4 }}>
           {score}
         </span>
-        {showLabel && (
-          <span className="text-xs text-muted-foreground">{scoreLabel(score)}</span>
-        )}
+        {label && <span className="text-xs text-muted-foreground">{label}</span>}
       </div>
     </div>
   );

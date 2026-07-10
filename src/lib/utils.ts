@@ -5,8 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: string | Date) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDate(date: string | Date, locale: string = "en") {
+  return new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -41,11 +41,14 @@ export function scoreColor(score: number) {
   return "text-red-500";
 }
 
-export function scoreLabel(score: number) {
-  if (score >= 90) return "Excellent";
-  if (score >= 80) return "Great";
-  if (score >= 70) return "Good";
-  if (score >= 60) return "Needs work";
-  if (score >= 40) return "Weak";
-  return "Critical";
+/** Dictionary key for a score band — translate via t.report.scoreLabels. */
+export function scoreLabelKey(
+  score: number
+): "excellent" | "great" | "good" | "needsWork" | "weak" | "critical" {
+  if (score >= 90) return "excellent";
+  if (score >= 80) return "great";
+  if (score >= 70) return "good";
+  if (score >= 60) return "needsWork";
+  if (score >= 40) return "weak";
+  return "critical";
 }

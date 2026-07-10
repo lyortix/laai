@@ -7,8 +7,9 @@ import { UrlForm } from "@/components/audit/url-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getQuota } from "@/lib/audit/quota";
+import { getDictionary } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n/format";
 import { createClient } from "@/lib/supabase/server";
-import { PLANS } from "@/lib/billing/plans";
 import { AUDIT_LIST_COLUMNS, type AuditListItem } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -20,7 +21,8 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [quota, { data: audits }] = await Promise.all([
+  const [t, quota, { data: audits }] = await Promise.all([
+    getDictionary(),
     getQuota(supabase, user.id),
     supabase
       .from("audits")
@@ -41,11 +43,9 @@ export default async function DashboardPage() {
       <section className="animate-fade-up space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            What are we roasting today?
+            {t.dashboard.title}
           </h1>
-          <p className="mt-1 text-muted-foreground">
-            Paste a URL and get your full conversion audit in under a minute.
-          </p>
+          <p className="mt-1 text-muted-foreground">{t.dashboard.subtitle}</p>
         </div>
         <UrlForm quotaExceeded={quota.exceeded} remaining={quota.remaining} />
       </section>
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums">{quota.used}</p>
-              <p className="text-sm text-muted-foreground">Audits this month</p>
+              <p className="text-sm text-muted-foreground">{t.dashboard.auditsThisMonth}</p>
             </div>
           </CardContent>
         </Card>
@@ -73,8 +73,8 @@ export default async function DashboardPage() {
               </p>
               <p className="text-sm text-muted-foreground">
                 {quota.limit === null
-                  ? `Unlimited on ${PLANS.pro.name}`
-                  : "Audits remaining"}
+                  ? format(t.dashboard.unlimitedOn, { plan: t.plans.pro.name })
+                  : t.dashboard.auditsRemaining}
               </p>
             </div>
           </CardContent>
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums">{bestScore ?? "—"}</p>
-              <p className="text-sm text-muted-foreground">Best score</p>
+              <p className="text-sm text-muted-foreground">{t.dashboard.bestScore}</p>
             </div>
           </CardContent>
         </Card>
@@ -94,11 +94,11 @@ export default async function DashboardPage() {
 
       <section className="animate-fade-up animation-delay-300 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">Recent audits</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{t.dashboard.recentAudits}</h2>
           {recent.length > 0 && (
             <Button asChild variant="ghost" size="sm">
               <Link href="/history">
-                View all <ArrowRight />
+                {t.dashboard.viewAll} <ArrowRight />
               </Link>
             </Button>
           )}
@@ -107,10 +107,8 @@ export default async function DashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
               <Flame className="size-8 text-muted-foreground/50" />
-              <p className="font-medium">No audits yet</p>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                Run your first roast above — your reports will show up here.
-              </p>
+              <p className="font-medium">{t.dashboard.emptyTitle}</p>
+              <p className="max-w-sm text-sm text-muted-foreground">{t.dashboard.emptyBody}</p>
             </CardContent>
           </Card>
         ) : (

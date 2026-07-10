@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { History, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +16,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import type { Plan } from "@/lib/types";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/history", label: "History", icon: History },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
 
 interface AppNavProps {
   email: string;
@@ -30,7 +27,14 @@ interface AppNavProps {
 
 export function AppNav({ email, plan }: AppNavProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const initial = (email[0] ?? "?").toUpperCase();
+
+  const navItems = [
+    { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
+    { href: "/history", label: t.nav.history, icon: History },
+    { href: "/settings", label: t.nav.settings, icon: Settings },
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-lg">
@@ -45,6 +49,7 @@ export function AppNav({ email, plan }: AppNavProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
                     active
@@ -60,15 +65,17 @@ export function AppNav({ email, plan }: AppNavProps) {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <FeedbackDialog />
           <Badge variant={plan === "pro" ? "default" : "secondary"} className="uppercase">
             {plan}
           </Badge>
+          <LanguageSwitcher />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger
-              aria-label="Account menu"
-              className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-sm font-semibold text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+              aria-label={t.common.accountMenu}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-sm font-semibold text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
             >
               {initial}
             </DropdownMenuTrigger>
@@ -92,7 +99,7 @@ export function AppNav({ email, plan }: AppNavProps) {
                 <form action="/auth/signout" method="post" className="w-full">
                   <button type="submit" className="flex w-full items-center gap-2">
                     <LogOut />
-                    Sign out
+                    {t.common.signOut}
                   </button>
                 </form>
               </DropdownMenuItem>

@@ -31,5 +31,33 @@ export interface Profile {
   full_name: string | null;
   plan: Plan;
   stripe_customer_id: string | null;
+  is_admin?: boolean;
+  created_at: string;
+}
+
+export interface Post {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  tags: string[];
+  category: string | null;
+  author_id: string | null;
+  published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FeedbackType = "suggestion" | "bug" | "feature" | "other";
+
+export interface Feedback {
+  id: string;
+  user_id: string;
+  type: FeedbackType;
+  rating: number | null;
+  message: string;
+  page: string | null;
   created_at: string;
 }

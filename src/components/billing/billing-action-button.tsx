@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/client";
 
 interface BillingActionButtonProps {
   endpoint: string;
@@ -23,6 +24,7 @@ export function BillingActionButton({
   children,
   variant = "default",
 }: BillingActionButtonProps) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,12 +38,12 @@ export function BillingActionButton({
         error?: string;
       };
       if (!res.ok || !data.url) {
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(data.error ?? t.settings.billingError);
         return;
       }
       window.location.href = data.url;
     } catch {
-      setError("Network error — please try again.");
+      setError(t.settings.billingNetworkError);
     } finally {
       setLoading(false);
     }

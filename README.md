@@ -10,6 +10,10 @@ Paste a website URL, get a premium AI-powered landing page audit in under 60 sec
 - **Supabase** — auth (email/password + Google OAuth) and Postgres with RLS
 - **Stripe-ready billing** — checkout + webhook wired; flips on with env vars
 - **Pluggable AI provider layer** — Google Gemini by default (official `@google/genai` SDK), with any OpenAI-compatible API (OpenAI, Groq, Together, OpenRouter, Azure, Ollama…) as a drop-in alternative
+- **i18n** — English + Türkçe with browser auto-detection, a navbar switcher, and AI reports generated in the dashboard language (`src/lib/i18n/`)
+- **Blog** — markdown posts with tags, categories, reading time, related posts, author pages and JSON-LD (admin-published via the `posts` table)
+- **User feedback** — in-app dialog (suggestions, bugs, feature requests, ratings) stored in Supabase
+- **Community-ready schema** — dormant tables for reviews, comments, likes and moderation (admin-only RLS until the feature ships)
 - Deploys to **Vercel** with zero config
 
 ## What an audit contains
@@ -36,7 +40,7 @@ npm run dev
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Run the migration in `supabase/migrations/0001_init.sql` (SQL editor or `supabase db push`). It creates `profiles` + `audits` with RLS and a signup trigger.
+2. Run the migrations in `supabase/migrations/` **in order** (SQL editor or `supabase db push`): `0001_init.sql` (profiles + audits) and `0002_blog_feedback_community.sql` (blog, feedback, dormant community tables, `is_admin` flag).
 3. Copy the project URL and anon key into `.env.local`.
 4. (Optional) Enable the Google provider under Auth → Providers for one-click sign-in.
 
@@ -99,3 +103,11 @@ supabase/migrations/              # Database schema (RLS-enabled)
 ## Deploying to Vercel
 
 Push to GitHub, import in Vercel, add the env vars from `.env.example`, deploy. The audit route declares `maxDuration = 60`, within Vercel's default function limits.
+
+## Internationalization
+
+Locale lives in a `locale` cookie: the proxy detects the browser language on first visit, the navbar switcher persists a choice, and the AI writes report text in the active language (enum values stay English and are translated in the UI). To add a language: extend `locales` in `src/lib/i18n/config.ts` and add a dictionary satisfying `Dictionary` — the compiler enforces completeness. Supabase auth emails are templated in the Supabase dashboard (Authentication → Email Templates), not in code.
+
+## Blog publishing
+
+Set `is_admin = true` on your profile row, then insert into `posts` (markdown `content`, unique `slug`, `published = true`, `published_at = now()`). Reading time, related posts, author pages, sitemap entries and JSON-LD are derived automatically.

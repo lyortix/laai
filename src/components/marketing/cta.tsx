@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getDictionary } from "@/lib/i18n/server";
 
-export function FinalCta() {
+export async function FinalCta() {
+  const t = await getDictionary();
+  const c = t.marketing.cta;
+
   return (
     <section className="border-t border-border/60 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -10,12 +14,9 @@ export function FinalCta() {
           <div className="bg-grid absolute inset-0 opacity-20" />
           <div className="relative">
             <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready to hear the truth about your landing page?
+              {c.title}
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-pretty text-white/85">
-              Your first roast is free. It takes less time than reading this
-              sentence twice.
-            </p>
+            <p className="mx-auto mt-4 max-w-xl text-pretty text-white/85">{c.subtitle}</p>
             <Button
               asChild
               size="lg"
@@ -23,7 +24,7 @@ export function FinalCta() {
               className="group mt-8 bg-white text-gray-900 hover:bg-white/90"
             >
               <Link href="/signup">
-                Get my free audit
+                {c.button}
                 <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
               </Link>
             </Button>

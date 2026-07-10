@@ -10,6 +10,11 @@ export function buildMockReport(snapshot: PageSnapshot): AuditReport {
   const section = (score: number, verdict: string) => ({
     score,
     verdict,
+    confidence: "medium" as const,
+    evidence: [
+      "Sample evidence item observed on the page.",
+      "Second observed fact from the snapshot.",
+    ],
     strengths: [
       "Clear structural hierarchy detected in the markup.",
       "Content is present and reasonably scannable.",
@@ -27,6 +32,7 @@ export function buildMockReport(snapshot: PageSnapshot): AuditReport {
   return {
     overallScore: 64,
     summary: `${site} has solid bones but leaks conversions: the value proposition is vague above the fold, the primary CTA competes with secondary links, and trust signals arrive too late. Fixing the hero and CTA alone should move the needle. (Sample report — MOCK_AI is enabled.)`,
+    analysisLimitations: null,
     sections: {
       hero: section(58, "The headline describes the product instead of the outcome the visitor gets."),
       cta: section(55, "The primary action is present but visually and verbally underpowered."),
@@ -44,14 +50,14 @@ export function buildMockReport(snapshot: PageSnapshot): AuditReport {
       { title: "No urgency or risk reversal", severity: "medium", description: "Nothing answers 'why now?' or removes the fear of committing." },
     ],
     improvements: [
-      { title: "Rewrite the hero headline around the outcome", impact: "high", effort: "low", description: "State the transformation, not the tool. Specificity beats cleverness." },
-      { title: "Make one CTA unmissable", impact: "high", effort: "low", description: "One high-contrast primary button above the fold; demote everything else." },
-      { title: "Move social proof above the fold", impact: "high", effort: "low", description: "A logo strip or a single sharp testimonial next to the CTA lowers perceived risk." },
-      { title: "Add a meta description", impact: "medium", effort: "low", description: "Write a 150-character pitch for the search results page." },
-      { title: "Compress body copy by 40%", impact: "medium", effort: "medium", description: "Turn paragraphs into scannable benefit bullets." },
-      { title: "Add an FAQ section", impact: "medium", effort: "low", description: "Answer the 5 objections that stop people from converting." },
-      { title: "Show pricing (or a path to it)", impact: "medium", effort: "medium", description: "Hidden pricing reads as expensive. Anchor with a free tier if possible." },
-      { title: "Audit color contrast", impact: "low", effort: "low", description: "Ensure all text meets WCAG AA, especially muted secondary copy." },
+      { title: "Rewrite the hero headline around the outcome", impact: "high", effort: "low", priority: "critical" as const, confidence: "high" as const, description: "State the transformation, not the tool. Specificity beats cleverness." },
+      { title: "Make one CTA unmissable", impact: "high", effort: "low", priority: "critical" as const, confidence: "high" as const, description: "One high-contrast primary button above the fold; demote everything else." },
+      { title: "Move social proof above the fold", impact: "high", effort: "low", priority: "critical" as const, confidence: "high" as const, description: "A logo strip or a single sharp testimonial next to the CTA lowers perceived risk." },
+      { title: "Add a meta description", impact: "medium", effort: "low", priority: "medium" as const, confidence: "medium" as const, description: "Write a 150-character pitch for the search results page." },
+      { title: "Compress body copy by 40%", impact: "medium", effort: "medium", priority: "medium" as const, confidence: "medium" as const, description: "Turn paragraphs into scannable benefit bullets." },
+      { title: "Add an FAQ section", impact: "medium", effort: "low", priority: "medium" as const, confidence: "medium" as const, description: "Answer the 5 objections that stop people from converting." },
+      { title: "Show pricing (or a path to it)", impact: "medium", effort: "medium", priority: "medium" as const, confidence: "medium" as const, description: "Hidden pricing reads as expensive. Anchor with a free tier if possible." },
+      { title: "Audit color contrast", impact: "low", effort: "low", priority: "low" as const, confidence: "high" as const, description: "Ensure all text meets WCAG AA, especially muted secondary copy." },
     ],
     rewrittenHero: {
       headline: "Know exactly why visitors leave — and fix it today",
@@ -64,6 +70,7 @@ export function buildMockReport(snapshot: PageSnapshot): AuditReport {
       rationale: "First-person, benefit-anchored copy with a zero-risk secondary path for hesitant visitors.",
     },
     pricingSection: {
+      noChangesNeeded: false,
       strategy: "Anchor with a free tier to remove friction, then price the paid tier against the value of a single recovered customer.",
       tiers: [
         { name: "Starter", price: "$0", description: "For trying it out", features: ["3 audits per month", "Full report access", "Community support"], highlighted: false },
