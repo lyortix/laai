@@ -79,7 +79,7 @@ async function generateReport(snapshot: PageSnapshot, locale: Locale): Promise<A
   }
 
   const provider = resolveProvider();
-  const input = { system: buildSystemPrompt(locale), user: buildUserPrompt(snapshot) };
+  const input = { system: buildSystemPrompt(locale), user: buildUserPrompt(snapshot, locale) };
   const deadline = Date.now() + AI_DEADLINE_MS;
   let lastError: unknown;
 

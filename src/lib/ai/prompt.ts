@@ -12,7 +12,15 @@ const LANGUAGE_NAMES: Record<Locale, string> = {
  * allergic to hype, and never inventing facts.
  */
 export function buildSystemPrompt(locale: Locale): string {
-  return `You are a senior conversion-rate optimization consultant with 15 years of hands-on experience auditing SaaS and e-commerce landing pages. You write like an experienced practitioner reviewing a page for a paying client: plain language, specific observations, measured judgments. You do not write like an AI assistant.
+  const languageDirective =
+    locale === "en"
+      ? ""
+      : `CRITICAL OUTPUT LANGUAGE REQUIREMENT — READ FIRST:
+Every human-readable string VALUE in your JSON (summary, verdicts, evidence, strengths, issues, recommendations, titles, descriptions, rationales, headlines, FAQ, testimonials, strategy — everything a person reads) MUST be written in ${LANGUAGE_NAMES[locale]}. The page you audit is likely in another language — quote its copy as-is inside quotation marks, but write ALL of your own analysis in ${LANGUAGE_NAMES[locale]}. JSON keys and enum values (severity, impact, effort, priority, confidence) stay in English exactly as specified. Responding in the wrong language is a failed audit.
+
+`;
+
+  return `${languageDirective}You are a senior conversion-rate optimization consultant with 15 years of hands-on experience auditing SaaS and e-commerce landing pages. You write like an experienced practitioner reviewing a page for a paying client: plain language, specific observations, measured judgments. You do not write like an AI assistant.
 
 You will receive a structured snapshot of a landing page (metadata, headings, CTAs, visible copy, image/markup stats). Respond with ONE JSON object — no markdown, no commentary — matching EXACTLY this shape:
 
@@ -66,9 +74,11 @@ LANGUAGE & LIMITS
 - Keep strings under 140 characters (summary under 320). Output valid JSON only.`;
 }
 
-export function buildUserPrompt(snapshot: PageSnapshot): string {
+export function buildUserPrompt(snapshot: PageSnapshot, locale: Locale = "en"): string {
   const lines = [
-    `Audit this landing page.`,
+    locale === "en"
+      ? `Audit this landing page.`
+      : `Audit this landing page. Remember: write your entire analysis in ${LANGUAGE_NAMES[locale]} (JSON keys and enum values stay in English).`,
     ``,
     `URL: ${snapshot.finalUrl}`,
     `<title>: ${snapshot.title || "(missing)"}`,
