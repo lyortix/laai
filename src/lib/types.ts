@@ -12,8 +12,27 @@ export interface Audit {
   overall_score: number | null;
   report: AuditReport | null;
   error: string | null;
+  is_public: boolean;
+  slug: string | null;
+  public_at: string | null;
+  view_count: number;
   created_at: string;
   completed_at: string | null;
+}
+
+/** Lightweight shape for public roast feed/cards — no full report. */
+export interface PublicRoast {
+  id: string;
+  slug: string;
+  url: string;
+  site_title: string | null;
+  overall_score: number;
+  hero_score: number;
+  cta_score: number;
+  seo_score: number;
+  summary: string;
+  view_count: number;
+  public_at: string;
 }
 
 /**

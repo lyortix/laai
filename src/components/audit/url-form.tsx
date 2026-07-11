@@ -11,7 +11,18 @@ import { useI18n } from "@/lib/i18n/client";
 import { format } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 
-const STEP_TIMINGS = [0, 3_000, 7_000, 16_000, 26_000];
+const STEP_KEYS = [
+  "connecting",
+  "readingHtml",
+  "analyzingHero",
+  "checkingTrust",
+  "reviewingSeo",
+  "generatingReport",
+  "preparingRewrites",
+  "finalReview",
+] as const;
+// Cumulative ms at which each step (after the first) activates.
+const STEP_TIMINGS = [0, 1_800, 4_500, 8_000, 12_000, 17_000, 30_000, 42_000];
 
 interface UrlFormProps {
   quotaExceeded?: boolean;
@@ -27,7 +38,7 @@ export function UrlForm({ quotaExceeded = false, remaining = null }: UrlFormProp
   const [error, setError] = useState<{ message: string; upgrade?: boolean } | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const steps = t.urlForm.steps;
+  const steps = STEP_KEYS.map((key) => t.loadingSteps[key]);
 
   useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
 

@@ -52,10 +52,8 @@ export async function POST(request: Request) {
     return jsonError(400, "Invalid request body.");
   }
 
-  const [quota, rateLimit] = await Promise.all([
-    getQuota(supabase, user.id),
-    checkRateLimits(supabase, user.id),
-  ]);
+  const quota = await getQuota(supabase, user.id);
+  const rateLimit = await checkRateLimits(supabase, user.id, quota.isAdmin);
 
   if (!rateLimit.ok) {
     return jsonError(rateLimit.status, rateLimit.error, rateLimit.code);

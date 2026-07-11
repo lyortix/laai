@@ -6,6 +6,8 @@ import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Pricing } from "@/components/marketing/pricing";
 import { Faq } from "@/components/marketing/faq";
 import { FinalCta } from "@/components/marketing/cta";
+import { RecentRoasts } from "@/components/marketing/recent-roasts";
+import { SocialProof } from "@/components/marketing/social-proof";
 import { getDictionary } from "@/lib/i18n/server";
 
 export default async function HomePage() {
@@ -33,8 +35,10 @@ export default async function HomePage() {
       <MarketingNavbar />
       <main id="main" className="flex-1">
         <Hero />
+        <SocialProof />
         <Features />
         <HowItWorks />
+        <RecentRoasts />
         <Pricing />
         <Faq />
         <FinalCta />

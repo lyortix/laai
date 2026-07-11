@@ -139,6 +139,51 @@
   }
 }
 
+@media print {
+  /* Chrome/Edge "Save as PDF" turns the report into a clean document:
+     drop chrome (nav, footer, sticky bars) and force light, ink-friendly colors. */
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+  :root {
+    --background: #ffffff;
+    --foreground: #111111;
+    --card: #ffffff;
+    --muted-foreground: #444444;
+    --border: #dddddd;
+  }
+  body {
+    background: #fff !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  [data-slot="card"] {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  /* Force-mounted tab panels: hide the tab bar, print every panel in full. */
+  [data-slot="tabs-list"] {
+    display: none !important;
+  }
+  [data-slot="tabs-content"][hidden] {
+    display: block !important;
+  }
+  [data-slot="tabs-content"] {
+    margin-top: 1.5rem !important;
+  }
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-score-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

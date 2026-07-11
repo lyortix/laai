@@ -247,14 +247,14 @@ export async function ReportView({ report }: { report: AuditReport }) {
         </TabsList>
 
         {/* 8 section reviews */}
-        <TabsContent value="sections" className="mt-4 grid gap-4 lg:grid-cols-2">
+        <TabsContent forceMount value="sections" className="mt-4 grid gap-4 lg:grid-cols-2">
           {SECTION_KEYS.map((key, i) => (
             <SectionCard key={key} sectionKey={key} review={report.sections[key]} index={i} t={t} />
           ))}
         </TabsContent>
 
         {/* Top problems */}
-        <TabsContent value="problems" className="mt-4 space-y-3">
+        <TabsContent forceMount value="problems" className="mt-4 space-y-3">
           {report.topProblems.map((problem, i) => (
             <Card key={problem.title} className="animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
               <CardContent className="flex items-start gap-4 p-5">
@@ -278,7 +278,7 @@ export async function ReportView({ report }: { report: AuditReport }) {
         </TabsContent>
 
         {/* Priority roadmap: improvements grouped critical → low */}
-        <TabsContent value="improvements" className="mt-4 space-y-6">
+        <TabsContent forceMount value="improvements" className="mt-4 space-y-6">
           {roadmap.map((group) => (
             <div key={group.priority} className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -318,7 +318,7 @@ export async function ReportView({ report }: { report: AuditReport }) {
         </TabsContent>
 
         {/* Rewrites: hero, CTA, pricing, FAQ, testimonials */}
-        <TabsContent value="rewrites" className="mt-4 space-y-4">
+        <TabsContent forceMount value="rewrites" className="mt-4 space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="animate-fade-up">
               <CardHeader className="flex-row items-start justify-between space-y-0">

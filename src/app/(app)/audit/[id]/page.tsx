@@ -4,12 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import { AlertCircle, ArrowLeft, ExternalLink, RotateCw } from "lucide-react";
 import { AutoRefresh } from "@/components/audit/auto-refresh";
 import { ReportView } from "@/components/audit/report-view";
+import { PublishToggle } from "@/components/roast/publish-toggle";
+import { ShareBar } from "@/components/roast/share-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { auditReportSchema } from "@/lib/audit/schema";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { format } from "@/lib/i18n/format";
+import { env } from "@/lib/env";
 import { displayUrl, formatDate } from "@/lib/utils";
 import type { Audit } from "@/lib/types";
 
@@ -94,6 +97,25 @@ export default async function AuditPage({
             <AlertTitle>{t.audit.inProgressTitle}</AlertTitle>
             <AlertDescription>{t.audit.inProgressBody}</AlertDescription>
           </Alert>
+        </>
+      )}
+
+      {audit.status === "complete" && parsedReport?.success && (
+        <>
+          <PublishToggle
+            auditId={audit.id}
+            initialPublic={audit.is_public}
+            initialSlug={audit.slug}
+          />
+          {audit.is_public && audit.slug && (
+            <ShareBar
+              url={`${env.appUrl}/roast/${audit.slug}`}
+              siteLabel={audit.url}
+              score={audit.overall_score ?? 0}
+              summary={parsedReport.data.summary}
+              allowPdf
+            />
+          )}
         </>
       )}
 

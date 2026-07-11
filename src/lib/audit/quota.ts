@@ -4,6 +4,7 @@ import type { Plan } from "@/lib/types";
 
 export interface QuotaState {
   plan: Plan;
+  isAdmin: boolean;
   used: number;
   limit: number | null; // null = unlimited
   remaining: number | null;
@@ -12,8 +13,6 @@ export interface QuotaState {
 
 /** Abuse guard applied to every plan, including Pro. */
 export const HOURLY_AUDIT_CAP = 10;
-/** Admins get a raised monthly allowance without needing a Pro subscription. */
-export const ADMIN_MONTHLY_LIMIT = 15;
 /** An audit stuck in "running" longer than this is considered dead. */
 export const RUNNING_STALE_MS = 2 * 60 * 1000;
 
@@ -42,9 +41,8 @@ export async function getQuota(
 
   const plan: Plan = profile?.plan === "pro" ? "pro" : "free";
   const isAdmin = profile?.is_admin === true;
-  // Pro stays unlimited; free admins get the raised allowance.
-  const limit =
-    plan === "free" && isAdmin ? ADMIN_MONTHLY_LIMIT : auditsAllowed(plan);
+  // Admins and Pro both get unlimited audits (null); free users get their cap.
+  const limit = isAdmin ? null : auditsAllowed(plan);
 
   const { count } = await supabase
     .from("audits")
@@ -57,6 +55,7 @@ export async function getQuota(
 
   return {
     plan,
+    isAdmin,
     used,
     limit,
     remaining: limit === null ? null : Math.max(0, limit - used),
@@ -75,7 +74,8 @@ export type RateLimitResult =
  */
 export async function checkRateLimits(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  isAdmin = false
 ): Promise<RateLimitResult> {
   const staleCutoff = new Date(Date.now() - RUNNING_STALE_MS).toISOString();
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -102,7 +102,8 @@ export async function checkRateLimits(
       code: "audit_in_progress",
     };
   }
-  if ((lastHour ?? 0) >= HOURLY_AUDIT_CAP) {
+  // Admins are exempt from the hourly throughput cap.
+  if (!isAdmin && (lastHour ?? 0) >= HOURLY_AUDIT_CAP) {
     return {
       ok: false,
       status: 429,
