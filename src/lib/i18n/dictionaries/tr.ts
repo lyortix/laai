@@ -36,7 +36,7 @@ export const tr: Dictionary = {
       titleLine2: "Nereden sızdığını 60 saniyede öğrenin.",
       subtitle:
         "Bir URL yapıştırın, acımasızca dürüst bir yapay zekâ analizi alın: 8 boyutta puan, en kritik sorunlarınız, yeniden yazılmış hero metni ve önceliklendirilmiş bir aksiyon listesi.",
-      ctaPrimary: "Sayfamı analiz et",
+      ctaPrimary: "Ücretsiz analizimi al",
       ctaSecondary: "Nasıl çalıştığını gör",
       note: "Ücretsiz plan · Kredi kartı gerekmez · Sonuç 1 dakikadan kısa sürede",
       previewLabel: "Landing Page Analizi",

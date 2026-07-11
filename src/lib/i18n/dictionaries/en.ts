@@ -39,7 +39,7 @@ export const en = {
       titleLine2: "Find out where in 60 seconds.",
       subtitle:
         "Paste a URL and get a brutally honest AI audit: scores across 8 dimensions, your top problems, rewritten hero copy, and a prioritized fix list.",
-      ctaPrimary: "Roast my landing page",
+      ctaPrimary: "Get my free audit",
       ctaSecondary: "See how it works",
       note: "Free plan · No credit card · Results in under a minute",
       previewLabel: "Landing Page Audit",

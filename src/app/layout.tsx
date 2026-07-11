@@ -27,6 +27,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: shortTitle, template: "%s · LandingRoast AI" },
     description,
     metadataBase: new URL(APP_URL),
+    // "./" resolves per-route, so every page declares its own official URL —
+    // stops query-string/host variants from splitting SEO authority.
+    alternates: { canonical: "./" },
     openGraph: { title: "LandingRoast AI", description, type: "website" },
     twitter: { card: "summary_large_image", title: "LandingRoast AI", description },
   };
